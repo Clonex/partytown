@@ -157,7 +157,7 @@ export type InterfaceMember =
 
 export interface WebWorkerContext {
   $asyncMsgTimer$?: any;
-  $config$: PartytownConfig;
+  $config$: PartytownInternalConfig;
   $importScripts$: (...urls: string[]) => void;
   $initWindowMedia$?: InitWindowMedia;
   $interfaces$: InterfaceInfo[];
@@ -443,10 +443,10 @@ export interface PartytownConfig {
    * This array can be used to filter which script are executed via
    * Partytown and which you would like to execute on the main thread.
    *
-   * @example loadScriptsOnMainThread:['https://test.com/analytics.js', 'inline-script-id']
+   * @example loadScriptsOnMainThread:['https://test.com/analytics.js', 'inline-script-id', /regex-matched-script\.js/]
    * // Loads the `https://test.com/analytics.js` script on the main thread
    */
-  loadScriptsOnMainThread?: string[];
+  loadScriptsOnMainThread?: (string | RegExp)[];
   get?: GetHook;
   set?: SetHook;
   apply?: ApplyHook;
@@ -522,15 +522,31 @@ export interface PartytownConfig {
   nonce?: string;
 }
 
+export type PartytownInternalConfig = Omit<PartytownConfig, 'loadScriptsOnMainThread'> & {
+  loadScriptsOnMainThread?: ['regexp' | 'string', string][];
+};
+
 /**
- * A foward property to patch on `window`. The foward config property is an string,
+ * @public
+ */
+export type PartytownForwardPropertySettings = {
+  preserveBehavior?: boolean;
+};
+
+/**
+ * @public
+ */
+export type PartytownForwardPropertyWithSettings = [string, PartytownForwardPropertySettings?];
+
+/**
+ * A forward property to patch on `window`. The forward config property is an string,
  * representing the call to forward, such as `dataLayer.push` or `fbq`.
  *
  * https://partytown.builder.io/forwarding-events
  *
  * @public
  */
-export type PartytownForwardProperty = string;
+export type PartytownForwardProperty = string | PartytownForwardPropertyWithSettings;
 
 /**
  * @public
@@ -576,7 +592,11 @@ export interface ApplyHookOptions extends HookOptions {
   args: any[];
 }
 
-export interface MainWindow extends Window {
+export type StringIndexable = {
+  [key: string]: any;
+};
+
+export interface MainWindow extends Window, StringIndexable {
   partytown?: PartytownConfig;
   _ptf?: any[];
 }
@@ -705,6 +725,7 @@ export interface WorkerInstance {
 }
 
 export interface WorkerNode extends WorkerInstance, Node {
+  id?: string | undefined | null;
   type: string | undefined;
 }
 
